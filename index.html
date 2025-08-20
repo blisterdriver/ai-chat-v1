@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Assistant</title>
+
+    <!-- Google Fonts: Montserrat for English, Noto Sans Bengali for Bengali -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Noto+Sans+Bengali:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Libraries for Markdown, LaTeX, and Code Highlighting -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"
+      defer
+    ></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+      integrity="sha384-n8MVd4RsNIU0KOVEMutoExTqlSFyL5NqN4dHRnPse9WBUSzvsA5longdGhwcskNA"
+      crossorigin="anonymous"
+    />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+      integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+      integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05"
+      crossorigin="anonymous"
+    ></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
+    />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"
+      defer
+    ></script>
+
+    <style>
+      :root {
+        --bg-color: #121212;
+        --surface-color: #1e1e1e;
+        --primary-color: #bb86fc;
+        --primary-variant-color: #3700b3;
+        --secondary-color: #03dac6;
+        --text-color: #e0e0e0;
+        --text-secondary-color: #a0a0a0;
+        --border-color: #333;
+        --error-color: #cf6679;
+        --font-english: "Montserrat", sans-serif;
+        --font-bengali: "Noto Sans Bengali", sans-serif;
+      }
+
+      /* --- Base Styles & Typography Upgrade --- */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-size: 16px;
+        overflow: hidden;
+        font-family: var(--font-english), var(--font-bengali);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        line-height: 1.6;
+      }
+
+      /* --- LAYOUT (Mobile First) --- */
+      #app-container {
+        width: 100vw;
+        position: relative;
+        height: 100vh;
+        height: 100dvh;
+      }
+
+      #sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 998;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+      }
+      #sidebar-overlay.open {
+        opacity: 1;
+        visibility: visible;
+      }
+      #sidebar {
+        background-color: var(--surface-color);
+        border-right: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        width: 280px;
+        max-width: 85vw;
+        height: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 999;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
+      }
+      #sidebar.open {
+        transform: translateX(0);
+      }
+      #chat-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      /* --- DESKTOP LAYOUT OVERRIDE --- */
+      @media (min-width: 769px) {
+        #app-container {
+          display: flex;
+          height: 100vh;
+        }
+        #sidebar {
+          position: static;
+          transform: translateX(0);
+          flex-shrink: 0;
+          max-width: 280px;
+        }
+        #menu-toggle,
+        #sidebar-overlay {
+          display: none;
+        }
+        #sidebar.open {
+          transform: translateX(0);
+        }
+        #sidebar-overlay.open {
+          opacity: 0;
+          visibility: hidden;
+        }
+        #chat-container {
+          flex-grow: 1;
+          width: auto;
+        }
+      }
+
+      /* --- Sidebar Components --- */
+      .sidebar-header {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        flex-shrink: 0;
+      }
+      #new-chat-btn {
+        width: 100%;
+        padding: 0.75rem;
+        background-color: var(--primary-color);
+        color: var(--bg-color);
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background-color 0.2s;
+        font-family: var(--font-english);
+      }
+      #new-chat-btn:hover {
+        background-color: var(--secondary-color);
+      }
+      #history-list {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 0.5rem 0;
+      }
+      .history-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-left: 3px solid transparent;
+      }
+      .history-item:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+      .history-item.active {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-left-color: var(--primary-color);
+      }
+      .delete-chat-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary-color);
+        cursor: pointer;
+        font-size: 1rem;
+        padding: 0.25rem;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .history-item:hover .delete-chat-btn {
+        opacity: 1;
+      }
+      .sidebar-footer {
+        padding: 1rem;
+        border-top: 1px solid var(--border-color);
+        flex-shrink: 0;
+      }
+      #tutor-mode-btn {
+        width: 100%;
+        padding: 0.75rem;
+        border-radius: 8px;
+        font-weight: bold;
+        cursor: pointer;
+        background-color: var(--surface-color);
+        border: 1px solid var(--primary-color);
+        color: var(--primary-color);
+        transition: background-color 0.2s, color 0.2s;
+        font-family: var(--font-english);
+      }
+      #tutor-mode-btn.active {
+        background-color: var(--primary-color);
+        color: var(--bg-color);
+      }
+
+      /* --- Main Chat Components --- */
+      .chat-header {
+        padding: 0.75rem 1rem;
+        background-color: var(--surface-color);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: bold;
+        flex-shrink: 0;
+        font-family: var(--font-english);
+      }
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .icon-btn {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        cursor: pointer;
+        font-size: 1.5rem;
+        padding: 0.25rem;
+      }
+      #chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .message {
+        max-width: 85%;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        position: relative;
+        display: table;
+        line-height: 1.6;
+      }
+      .message:hover .message-actions {
+        opacity: 1;
+      }
+      .message.user {
+        background-color: var(--primary-variant-color);
+        align-self: flex-end;
+        border-bottom-right-radius: 2px;
+      }
+      .message.model {
+        background-color: var(--surface-color);
+        align-self: flex-start;
+        border-bottom-left-radius: 2px;
+      }
+      .message.error {
+        background-color: var(--error-color);
+        color: white;
+        align-self: center;
+      }
+      .message.loading {
+        color: var(--text-secondary-color);
+        align-self: flex-start;
+      }
+      .message-actions {
+        position: absolute;
+        bottom: -5px;
+        right: 5px;
+        display: flex;
+        gap: 4px;
+        background: var(--surface-color);
+        padding: 2px 4px;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .action-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary-color);
+        cursor: pointer;
+        font-size: 0.9rem;
+      }
+
+      /* --- Content Styling (Markdown, etc.) --- */
+      .message-content p {
+        margin-bottom: 0.75em;
+      }
+      .message-content p:last-child {
+        margin-bottom: 0;
+      }
+      .message-content ul,
+      .message-content ol {
+        padding-left: 1.5em;
+        margin-bottom: 0.75em;
+      }
+      .message-content pre {
+        background-color: #282c34;
+        color: #abb2bf;
+        padding: 1em;
+        border-radius: 8px;
+        margin: 0.5em 0;
+        font-family: "Courier New", Courier, monospace;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+      }
+      .message-content code {
+        font-family: "Courier New", Courier, monospace;
+      }
+      .message-content pre code {
+        padding: 0;
+        background: none;
+      }
+      .message-content blockquote {
+        border-left: 3px solid var(--primary-color);
+        padding-left: 1em;
+        margin: 0.5em 0;
+        color: var(--text-secondary-color);
+      }
+      .katex {
+        font-size: 1.1em;
+        letter-spacing: 0.05em;
+      }
+      .katex svg {
+        max-width: 100%;
+      }
+      .katex-display {
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0.5em 0.4em;
+        margin: 0.2em 0;
+        line-height: 1.2;
+        scrollbar-width: thin;
+        scrollbar-color: var(--primary-color) var(--surface-color);
+      }
+      .katex-display::-webkit-scrollbar {
+        height: 6px;
+      }
+      .katex-display::-webkit-scrollbar-track {
+        background: var(--surface-color);
+      }
+      .katex-display::-webkit-scrollbar-thumb {
+        background-color: var(--primary-color);
+        border-radius: 6px;
+      }
+
+      /* --- Input Area --- */
+      #chat-form-container {
+        padding: 1rem;
+        border-top: 1px solid var(--border-color);
+        background-color: var(--bg-color);
+        flex-shrink: 0;
+      }
+      #file-previews {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+      }
+      .preview-item {
+        position: relative;
+        width: 70px;
+        height: 70px;
+        flex-shrink: 0;
+      }
+      .preview-item img,
+      .preview-item video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 8px;
+      }
+      .preview-item .remove-file {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 8px;
+      }
+      .spinner {
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #input-area {
+        display: flex;
+        align-items: flex-end;
+        background-color: var(--surface-color);
+        border-radius: 12px;
+        padding: 0.5rem;
+      }
+      #chat-input {
+        flex-grow: 1;
+        border: none;
+        background: transparent;
+        color: var(--text-color);
+        font-size: 1rem;
+        resize: none;
+        max-height: 120px;
+        overflow-y: auto;
+        font-family: var(--font-english), var(--font-bengali);
+      }
+      #chat-input:focus {
+        outline: none;
+      }
+      .input-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary-color);
+        cursor: pointer;
+        font-size: 1.5rem;
+        padding: 0.5rem;
+        border-radius: 8px;
+        transition: background-color 0.2s;
+      }
+      .input-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      #send-btn {
+        color: var(--primary-color);
+      }
+
+      /* --- Custom Modal --- */
+      #custom-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+      }
+      #custom-modal-overlay.open {
+        opacity: 1;
+        visibility: visible;
+      }
+      #custom-modal {
+        background-color: var(--surface-color);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+      }
+      #custom-modal-overlay.open #custom-modal {
+        transform: scale(1);
+      }
+      #modal-message {
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+      }
+      #modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+      }
+      .modal-btn {
+        padding: 0.6rem 1.2rem;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background-color 0.2s;
+        font-family: var(--font-english);
+      }
+      #modal-cancel-btn {
+        background-color: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+      }
+      #modal-cancel-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      #modal-confirm-btn {
+        background-color: var(--primary-color);
+        color: var(--bg-color);
+      }
+      #modal-confirm-btn:hover {
+        background-color: var(--secondary-color);
+      }
+      #modal-confirm-btn.danger {
+        background-color: var(--error-color);
+        color: white;
+      }
+      #modal-confirm-btn.danger:hover {
+        background-color: #e57c8d;
+      }
+
+      /* --- MOBILE RESPONSIVE TWEAKS --- */
+      @media (max-width: 768px) {
+        .message {
+          max-width: 95%;
+        }
+        #chat-messages,
+        #chat-form-container {
+          padding-left: 0.5rem;
+          padding-right: 0.5rem;
+        }
+        .chat-header {
+          padding-left: 0.5rem;
+          padding-right: 0.5rem;
+        }
+        .header-left span {
+          display: none;
+        }
+        .input-btn {
+          padding: 0.4rem;
+          font-size: 1.25rem;
+        }
+      }
+      @media (max-width: 480px) {
+        html,
+        body {
+          font-size: 15px;
+        }
+        #chat-input {
+          font-size: 0.95rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app-container">
+      <aside id="sidebar">
+        <div class="sidebar-header">
+          <button id="new-chat-btn">＋ New Chat</button>
+        </div>
+        <div id="history-list"></div>
+        <div class="sidebar-footer">
+          <button id="tutor-mode-btn">Tutor Mode</button>
+        </div>
+      </aside>
+      <main id="chat-container">
+        <div id="sidebar-overlay"></div>
+        <div class="chat-header">
+          <div class="header-left">
+            <button id="menu-toggle" class="icon-btn" title="Toggle Menu">
+              ☰
+            </button>
+            <span>AI Assistant</span>
+          </div>
+        </div>
+        <div id="chat-messages"></div>
+        <div id="chat-form-container">
+          <div id="file-previews"></div>
+          <form id="chat-form" novalidate>
+            <div id="input-area">
+              <input
+                type="file"
+                id="file-input"
+                multiple
+                accept="image/*,video/*"
+                hidden
+              />
+              <button
+                type="button"
+                id="gallery-btn"
+                class="input-btn"
+                title="Upload from Gallery"
+              >
+                🖼️
+              </button>
+              <button
+                type="button"
+                id="camera-btn"
+                class="input-btn"
+                title="Take a Photo"
+              >
+                📷
+              </button>
+              <textarea
+                id="chat-input"
+                placeholder="Message Assistant..."
+                rows="1"
+              ></textarea>
+              <button
+                type="submit"
+                id="send-btn"
+                class="input-btn"
+                title="Send"
+              >
+                ➤
+              </button>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+    <div id="custom-modal-overlay">
+      <div id="custom-modal">
+        <p id="modal-message">Are you sure?</p>
+        <div id="modal-actions">
+          <button id="modal-cancel-btn" class="modal-btn">Cancel</button>
+          <button id="modal-confirm-btn" class="modal-btn">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // --- START OF JAVASCRIPT ---
+      const API_URL = "/api/generate"; // The URL of our Python backend endpoint
+
+      const $ = (selector) => document.querySelector(selector);
+      const modalOverlay = $("#custom-modal-overlay");
+      const modalMessage = $("#modal-message");
+      const modalConfirmBtn = $("#modal-confirm-btn");
+      const modalCancelBtn = $("#modal-cancel-btn");
+      let confirmCallback = null;
+      let currentChatHistory = [];
+      let allChats = {};
+      let activeChatId = null;
+      let uploadedFiles = [];
+      let isTutorMode = false;
+
+      function showConfirmationModal(message, onConfirm, isDanger = false) {
+        modalMessage.textContent = message;
+        confirmCallback = onConfirm;
+        modalConfirmBtn.classList.toggle("danger", isDanger);
+        modalOverlay.classList.add("open");
+      }
+
+      function hideConfirmationModal() {
+        modalOverlay.classList.remove("open");
+        confirmCallback = null;
+      }
+
+      function showNotification(message) {
+        const notification = document.createElement("div");
+        notification.textContent = message;
+        notification.style.cssText = `position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background-color: var(--error-color); color: white; padding: 10px 20px; border-radius: 8px; z-index: 1001; opacity: 0; transition: opacity 0.3s ease, transform 0.3s ease; transform: translate(-50%, -20px);`;
+        document.body.appendChild(notification);
+        setTimeout(() => {
+          notification.style.opacity = 1;
+          notification.style.transform = "translateX(-50%)";
+        }, 10);
+        setTimeout(() => {
+          notification.style.opacity = 0;
+          notification.style.transform = "translate(-50%, -20px)";
+          setTimeout(() => notification.remove(), 300);
+        }, 3000);
+      }
+
+      function setupEventListeners() {
+        document.addEventListener("DOMContentLoaded", () => {
+          marked.setOptions({
+            highlight: function (code, lang) {
+              const language = hljs.getLanguage(lang) ? lang : "plaintext";
+              return hljs.highlight(code, { language }).value;
+            },
+            langPrefix: "hljs language-",
+            breaks: true,
+          });
+          loadTutorModeState();
+          loadAllChats();
+        });
+        modalConfirmBtn.addEventListener("click", () => {
+          if (typeof confirmCallback === "function") {
+            confirmCallback();
+          }
+          hideConfirmationModal();
+        });
+        modalCancelBtn.addEventListener("click", hideConfirmationModal);
+        modalOverlay.addEventListener("click", (e) => {
+          if (e.target === modalOverlay) {
+            hideConfirmationModal();
+          }
+        });
+        $("#menu-toggle").addEventListener("click", toggleSidebar);
+        $("#sidebar-overlay").addEventListener("click", toggleSidebar);
+        $("#chat-form").addEventListener("submit", handleSendMessage);
+        $("#chat-input").addEventListener("input", autoGrowTextarea);
+        $("#chat-input").addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage(e);
+          }
+        });
+        $("#gallery-btn").addEventListener("click", () => {
+          $("#file-input").removeAttribute("capture");
+          $("#file-input").click();
+        });
+        $("#camera-btn").addEventListener("click", () => {
+          $("#file-input").setAttribute("capture", "environment");
+          $("#file-input").click();
+        });
+        $("#file-input").addEventListener("change", handleFileSelection);
+        $("#new-chat-btn").addEventListener("click", startNewChat);
+        $("#history-list").addEventListener("click", handleHistoryClick);
+        $("#chat-messages").addEventListener("click", handleMessageAction);
+        $("#tutor-mode-btn").addEventListener("click", toggleTutorMode);
+      }
+
+      const toggleSidebar = () => {
+        $("#sidebar").classList.toggle("open");
+        $("#sidebar-overlay").classList.toggle("open");
+      };
+
+      const autoGrowTextarea = () => {
+        const input = $("#chat-input");
+        input.style.height = "auto";
+        input.style.height = input.scrollHeight + "px";
+      };
+
+      function toggleTutorMode() {
+        showConfirmationModal(
+          "Switching modes will start a new chat. Do you want to continue?",
+          () => {
+            isTutorMode = !isTutorMode;
+            localStorage.setItem("ai-tutor-mode", isTutorMode);
+            updateTutorButtonState();
+            startNewChat();
+          }
+        );
+      }
+
+      function updateTutorButtonState() {
+        const btn = $("#tutor-mode-btn");
+        if (isTutorMode) {
+          btn.classList.add("active");
+          btn.textContent = "Tutor Mode: ON";
+        } else {
+          btn.classList.remove("active");
+          btn.textContent = "Tutor Mode: OFF";
+        }
+      }
+
+      function loadTutorModeState() {
+        isTutorMode = localStorage.getItem("ai-tutor-mode") === "true";
+        updateTutorButtonState();
+      }
+
+      // ===================================================================
+      // === NEW FUNCTION TO HIDE THE <THINKING> BLOCK FROM THE UI ===
+      // ===================================================================
+      /**
+       * Parses the raw text from the model to separate the <thinking> block
+       * from the final solution.
+       * @param {string} rawText The complete response from the model.
+       * @returns {{thinking: string|null, solution: string}} An object with the thinking process and the clean solution.
+       */
+      function parseModelResponse(rawText) {
+        const thinkingRegex = /<thinking>([\s\S]*?)<\/thinking>/;
+        const match = rawText.match(thinkingRegex);
+
+        if (match) {
+          // If we find a thinking block
+          const thinkingContent = match[1].trim();
+          // The solution is the rest of the string with the thinking block removed
+          const solutionContent = rawText.replace(thinkingRegex, '').trim();
+          return {
+            thinking: thinkingContent,
+            solution: solutionContent,
+          };
+        } else {
+          // If no thinking block is found, the whole response is the solution
+          return {
+            thinking: null,
+            solution: rawText.trim(),
+          };
+        }
+      }
+
+      async function handleSendMessage(e, isEdit = false, editIndex = -1) {
+        e.preventDefault();
+        const userText = $("#chat-input").value.trim();
+        if (userText === "" && uploadedFiles.length === 0 && !isEdit) return;
+        if (!activeChatId) startNewChat(false);
+
+        if (isEdit) {
+          currentChatHistory = currentChatHistory.slice(0, editIndex + 1);
+          currentChatHistory[editIndex].parts = [{ text: userText }];
+          loadChat(activeChatId);
+        } else {
+          const userMessage = { role: "user", parts: [] };
+          if (userText) userMessage.parts.push({ text: userText });
+          uploadedFiles.forEach((file) => {
+            userMessage.parts.push({
+              inline_data: { mime_type: file.mimeType, data: file.base64 },
+            });
+          });
+          currentChatHistory.push(userMessage);
+          displayMessage(
+            currentChatHistory.length - 1,
+            "user",
+            userText,
+            uploadedFiles
+          );
+        }
+
+        $("#chat-input").value = "";
+        autoGrowTextarea();
+        $("#file-previews").innerHTML = "";
+        uploadedFiles = [];
+        $("#file-input").value = "";
+
+        const loadingMessage = displayMessage(
+          -1,
+          "loading",
+          "Assistant is thinking..."
+        );
+
+        try {
+          const modelResponse = await callBackendAPI();
+          loadingMessage.remove();
+
+          // --- MODIFIED LOGIC TO PARSE THE RESPONSE ---
+          if (modelResponse && modelResponse.text) {
+              const rawModelText = modelResponse.text;
+              
+              // 1. Parse the response to separate thinking from the solution
+              const { thinking, solution } = parseModelResponse(rawModelText);
+              
+              // 2. Log the thinking process for your own debugging (Press F12 to see console)
+              if (thinking) {
+                  console.log("--- Model's Thinking Process (Hidden from UI) ---");
+                  console.log(thinking);
+                  console.log("-------------------------------------------------");
+              }
+
+              // 3. Save the FULL, raw response to history so the model has context for the next turn
+              currentChatHistory.push({
+                  role: "model",
+                  parts: [{ text: rawModelText }], 
+              });
+
+              // 4. But ONLY display the clean solution to the user in the chat window
+              displayMessage(currentChatHistory.length - 1, "model", solution);
+
+          } else {
+              throw new Error("Invalid response from server.");
+          }
+          // --- END OF MODIFIED LOGIC ---
+
+          saveCurrentChat();
+          updateHistorySidebar();
+        } catch (error) {
+          console.error("Backend API Error:", error);
+          loadingMessage.remove();
+          displayMessage(
+            -1,
+            "error",
+            `Error: ${error.message || "Failed to get response from server."}`
+          );
+        }
+      }
+
+      async function callBackendAPI() {
+        const requestBody = {
+          history: currentChatHistory,
+          is_tutor_mode: isTutorMode,
+        };
+
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || "An unknown error occurred");
+        }
+        return response.json();
+      }
+
+      function displayMessage(index, role, text, files = []) {
+        const messageEl = document.createElement("div");
+        messageEl.className = `message ${role}`;
+        messageEl.dataset.index = index;
+        let fileHTML = "";
+        if (files.length > 0) {
+          fileHTML +=
+            '<div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom: 8px;">';
+          files.forEach((file) => {
+            const src = `data:${file.mimeType};base64,${file.base64}`;
+            if (file.mimeType.startsWith("image/")) {
+              fileHTML += `<img src="${src}" style="max-width:80px; border-radius:4px;">`;
+            } else if (file.mimeType.startsWith("video/")) {
+              fileHTML += `<video controls style="max-width:120px; border-radius:4px;"><source src="${src}" type="${file.mimeType}"></video>`;
+            }
+          });
+          fileHTML += "</div>";
+        }
+        messageEl.innerHTML = fileHTML;
+
+        if (text) {
+          const contentDiv = document.createElement("div");
+          contentDiv.className = "message-content";
+          contentDiv.innerHTML = marked.parse(text);
+          messageEl.appendChild(contentDiv);
+          try {
+            if (window.renderMathInElement) {
+                renderMathInElement(contentDiv, {
+                    delimiters: [
+                        { left: "$$", right: "$$", display: true },
+                        { left: "\\[", right: "\\]", display: true },
+                        { left: "$", right: "$", display: false },
+                        { left: "\\(", right: "\\)", display: false },
+                    ],
+                    throwOnError: false,
+                });
+            }
+          } catch (e) {
+            console.error("KaTeX rendering error:", e);
+          }
+        }
+
+        if (role === "user" || role === "model") {
+          const actionsHTML = `<div class="message-actions">${
+            role === "user"
+              ? `<button class="action-btn edit-btn" title="Edit">✏️</button>`
+              : ""
+          }<button class="action-btn delete-btn" title="Delete">🗑️</button></div>`;
+          messageEl.insertAdjacentHTML("beforeend", actionsHTML);
+        }
+
+        $("#chat-messages").appendChild(messageEl);
+        $("#chat-messages").scrollTop = $("#chat-messages").scrollHeight;
+        return messageEl;
+      }
+
+      function handleFileSelection(e) {
+        const files = Array.from(e.target.files);
+        if (uploadedFiles.length + files.length > 10) {
+          showNotification("You can upload a maximum of 10 files.");
+          return;
+        }
+        files.forEach((file) => {
+          const reader = new FileReader();
+          const fileId = Date.now() + Math.random();
+          const previewEl = document.createElement("div");
+          previewEl.className = "preview-item";
+          previewEl.innerHTML = `<div class="loading-overlay"><div class="spinner"></div></div><button class="remove-file" data-id="${fileId}">&times;</button>`;
+          $("#file-previews").appendChild(previewEl);
+          previewEl
+            .querySelector(".remove-file")
+            .addEventListener("click", () => {
+              uploadedFiles = uploadedFiles.filter((f) => f.id !== fileId);
+              previewEl.remove();
+            });
+          reader.onload = (event) => {
+            const base64String = event.target.result.split(",")[1];
+            const fileData = {
+              id: fileId,
+              filename: file.name,
+              mimeType: file.type,
+              base64: base64String,
+            };
+            uploadedFiles.push(fileData);
+            let mediaPreview;
+            if (file.type.startsWith("image/"))
+              mediaPreview = document.createElement("img");
+            else {
+              mediaPreview = document.createElement("video");
+              mediaPreview.muted = true;
+              mediaPreview.playsinline = true;
+              mediaPreview.autoplay = true;
+              mediaPreview.loop = true;
+            }
+            mediaPreview.src = event.target.result;
+            previewEl.querySelector(".loading-overlay").remove();
+            previewEl.prepend(mediaPreview);
+          };
+          reader.onerror = (error) => {
+            console.error("File reading error:", error);
+            previewEl.remove();
+            showNotification(`Error reading file: ${file.name}`);
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function handleMessageAction(e) {
+        const target = e.target;
+        const messageEl = target.closest(".message");
+        if (!messageEl) return;
+        const index = parseInt(messageEl.dataset.index, 10);
+        if (target.classList.contains("delete-btn")) {
+          showConfirmationModal(
+            "Are you sure you want to delete this message and all subsequent messages?",
+            () => {
+              currentChatHistory.splice(index);
+              saveCurrentChat();
+              loadChat(activeChatId);
+            },
+            true
+          );
+        } else if (target.classList.contains("edit-btn")) {
+          const contentDiv = messageEl.querySelector(".message-content");
+          const originalText =
+            currentChatHistory[index].parts.find((p) => p.text)?.text || "";
+          const editForm = document.createElement("form");
+          editForm.style.display = "flex";
+          editForm.style.flexDirection = "column";
+          editForm.style.gap = "8px";
+          editForm.innerHTML = `<textarea style="width:100%; min-height:80px; background:var(--bg-color); color:var(--text-color); border:1px solid var(--border-color); border-radius:4px; padding:8px;">${originalText}</textarea><div><button type="submit" style="background:var(--primary-color); color:var(--bg-color); border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Save & Submit</button><button type="button" class="cancel-edit" style="background:var(--surface-color); color:var(--text-color); border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Cancel</button></div>`;
+          contentDiv.replaceWith(editForm);
+          editForm.addEventListener("submit", (submitEvent) => {
+            $("#chat-input").value = editForm.querySelector("textarea").value;
+            handleSendMessage(submitEvent, true, index);
+          });
+          editForm
+            .querySelector(".cancel-edit")
+            .addEventListener("click", () => {
+              loadChat(activeChatId);
+            });
+        }
+      }
+
+      const startNewChat = (render = true) => {
+        activeChatId = `chat_${Date.now()}`;
+        currentChatHistory = [];
+        allChats[activeChatId] = {
+          id: activeChatId,
+          history: [],
+          timestamp: Date.now(),
+        };
+        const welcomeMessage = isTutorMode
+          ? "AI Tutor Mode"
+          : "Started a new chat. How can I assist you?";
+        $(
+          "#chat-messages"
+        ).innerHTML = `<div class="message model">${welcomeMessage}</div>`;
+        saveAllChats();
+        if (render) updateHistorySidebar();
+        if ($("#sidebar").classList.contains("open")) toggleSidebar();
+      };
+
+      const saveCurrentChat = () => {
+        if (!activeChatId) return;
+        allChats[activeChatId].history = currentChatHistory;
+        allChats[activeChatId].timestamp = Date.now();
+        saveAllChats();
+      };
+
+      const saveAllChats = () =>
+        localStorage.setItem("ai-all-chats", JSON.stringify(allChats));
+
+      const loadAllChats = () => {
+        const storedChats = localStorage.getItem("ai-all-chats");
+        if (storedChats) allChats = JSON.parse(storedChats);
+        updateHistorySidebar();
+        const sortedChats = Object.values(allChats).sort(
+          (a, b) => b.timestamp - a.timestamp
+        );
+        if (sortedChats.length > 0) {
+          loadChat(sortedChats[0].id);
+        } else {
+          startNewChat();
+        }
+      };
+
+      function updateHistorySidebar() {
+        $("#history-list").innerHTML = "";
+        const sortedChats = Object.values(allChats).sort(
+          (a, b) => b.timestamp - a.timestamp
+        );
+        sortedChats.forEach((chat) => {
+          const historyItem = document.createElement("div");
+          historyItem.className = "history-item";
+          historyItem.dataset.id = chat.id;
+          const firstUserMessage = chat.history.find(
+            (msg) => msg.role === "user"
+          );
+          let previewText = "New Chat";
+          if (firstUserMessage && firstUserMessage.parts[0]?.text) {
+            previewText = firstUserMessage.parts[0].text;
+          }
+          historyItem.innerHTML = `<span class="history-title">${previewText}</span><button class="delete-chat-btn" data-id="${chat.id}" title="Delete Chat">🗑️</button>`;
+          if (chat.id === activeChatId) historyItem.classList.add("active");
+          $("#history-list").appendChild(historyItem);
+        });
+      }
+
+      function handleHistoryClick(e) {
+        const historyItem = e.target.closest(".history-item");
+        if (!historyItem) return;
+        if (e.target.classList.contains("delete-chat-btn")) {
+          const chatId = e.target.dataset.id;
+          showConfirmationModal(
+            "Are you sure you want to delete this entire chat?",
+            () => {
+              delete allChats[chatId];
+              saveAllChats();
+              if (activeChatId === chatId) startNewChat();
+              else updateHistorySidebar();
+            },
+            true
+          );
+        } else {
+          const chatId = historyItem.dataset.id;
+          loadChat(chatId);
+          if ($("#sidebar").classList.contains("open")) toggleSidebar();
+        }
+      }
+
+      function loadChat(chatId) {
+        if (!allChats[chatId]) return;
+        activeChatId = chatId;
+        currentChatHistory = allChats[chatId].history;
+        $("#chat-messages").innerHTML = "";
+        if (currentChatHistory.length === 0) {
+          const welcomeMessage = isTutorMode
+            ? "AI Tutor Mode"
+            : "This is an empty chat. Start the conversation!";
+          $(
+            "#chat-messages"
+          ).innerHTML = `<div class="message model">${welcomeMessage}</div>`;
+        } else {
+          currentChatHistory.forEach((message, index) => {
+            const text = message.parts.find((p) => p.text)?.text || "";
+            const filesData = message.parts
+              .filter((p) => p.inline_data)
+              .map((p) => ({
+                mimeType: p.inline_data.mime_type,
+                base64: p.inline_data.data,
+              }));
+            displayMessage(index, message.role, text, filesData);
+          });
+        }
+        updateHistorySidebar();
+      }
+
+      // Initialize the application
+      setupEventListeners();
+      // --- END OF JAVASCRIPT ---
+    </script>
+  </body>
+</html>
