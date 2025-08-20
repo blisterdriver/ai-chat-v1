@@ -31,7 +31,8 @@ TUTOR_MODE_PROMPT = {
         - The <thinking> block is mandatory and must come first.
         - The formal solution must be presented after the <thinking> block.
         - The entire response must be in Bengali.
-        - Do not give the final answer anywhere except at the end of the formal solution."""
+        - Do not give the final answer anywhere except at the end of the formal solution.
+        -USE BANGLA FOR THE ANSWER"""
     }]
 }
 
