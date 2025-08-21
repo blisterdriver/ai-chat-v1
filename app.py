@@ -23,7 +23,7 @@ TUTOR_MODE_PROMPT = {
 
 Your response MUST follow this two-part structure:
 
-1.  *<thinking> Block:* First, analyze the problem and plan your solution step-by-step. This entire process must be enclosed within <thinking> and </thinking> tags. This is your hidden scratchpad.
+1.  *<thinking> Block:* First, analyze the problem and plan your solution step-by-step. This entire process must be enclosed within <thinking> and <\thinking> tags. This is your hidden scratchpad.
 
 2.  *Exam-Style Solution:* After the thinking block, write the final answer. This part must be written in the style of a top-scoring student's exam paper.
     *   *Direct & Concise:* Be straight to the point. Show all necessary steps, formulas, and logical deductions required to get full marks.
