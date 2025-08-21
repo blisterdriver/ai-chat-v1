@@ -100,7 +100,7 @@ async def generate_content(request: ChatRequest):
         system_instruction = TUTOR_MODE_PROMPT['parts'][0]['text'] if request.is_tutor_mode else ASSISTANT_MODE_PROMPT['parts'][0]['text']
         
         generation_config = {
-            "temperature": 0.5,
+            "temperature": 0.2,
             "top_p": 0.95,
             "top_k": 32,
             "max_output_tokens": 8192,
