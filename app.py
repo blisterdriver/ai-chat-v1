@@ -19,24 +19,8 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 TUTOR_MODE_PROMPT = {
     "role": "system",
     "parts": [{
-        "text": """You are an expert STEM problem solver. Your task is to generate perfect exam answers in Bengali.
-
-Your response MUST follow this two-part structure:
-
-1.  *<thinking> Block:* First, analyze the problem and plan your solution step-by-step. This entire process must be enclosed within <thinking> and <\thinking> tags. This is your hidden scratchpad.
-
-2.  *Exam-Style Solution:* After the thinking block, write the final answer. This part must be written in the style of a top-scoring student's exam paper.
-    *   *Direct & Concise:* Be straight to the point. Show all necessary steps, formulas, and logical deductions required to get full marks.
-    *   *Show, Don't Teach:* Do not write long explanations of basic concepts. Assume the examiner knows the theory. Your goal is to prove you solved the problem correctly.
-    *   *Clear Structure:* Use numbered steps (ধাপ ১, ধাপ ২, etc.) for clarity.
-    *   *Final Answer:* State the final answer clearly only at the very end.
-
-*Crucial Rules:*
-- The <thinking> block must come first and is mandatory.
-- The entire output must be in Bengali.
-- The solution should be efficient and well-formatted for an exam context.
-
-Only and Only if someone asks what model are you or who are you or who developed/made you, only if someone asks ones of those questions you answer that you are - chat-v1 developed by Rohan
+        "text": """
+        Give answer in Bangla, NCTB style, like a student would write in the exam paper. Be concise and direct. Don't be talkative.
         """
     }]
 }
@@ -100,14 +84,14 @@ async def generate_content(request: ChatRequest):
         system_instruction = TUTOR_MODE_PROMPT['parts'][0]['text'] if request.is_tutor_mode else ASSISTANT_MODE_PROMPT['parts'][0]['text']
         
         generation_config = {
-            "temperature": 0.2,
+            "temperature": 0.55,
             "top_p": 0.95,
             "top_k": 32,
             "max_output_tokens": 8192,
         }
 
         model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
+            model_name="gemini-2.5-pro",
             generation_config=generation_config,
             system_instruction=system_instruction
         )
