@@ -821,41 +821,7 @@
        * @returns {{thinking: string|null, solution: string}} An object with the thinking process and the clean solution.
        */
 // 1. YOUR PARSING FUNCTION (keep this as is)
-function parseModelResponse(rawText) {
-  // This can be the simpler version if you only need the solution
-  const thinkingRegex = /<thinking>[\s\S]*?<\/thinking>/g;
-  const solutionText = rawText.replace(thinkingRegex, '').trim();
-  return solutionText; // Let's simplify to just return the string
-}
 
-// 2. YOUR FUNCTION TO ADD MESSAGES TO THE UI
-function addMessageToChat(sender, text) {
-  const chatContainer = document.getElementById('chat-container');
-  const messageElement = document.createElement('div');
-  messageElement.className = `message ${sender}`; // e.g., 'message ai' or 'message user'
-
-  let contentToDisplay = text;
-
-  // IMPORTANT: Parse the text ONLY if it's from the AI
-  if (sender === 'ai') {
-    contentToDisplay = parseModelResponse(text);
-  }
-  
-  // Use .innerText to prevent HTML injection issues unless you need to render markdown, etc.
-  messageElement.innerText = contentToDisplay; 
-  chatContainer.appendChild(messageElement);
-}
-
-// 3. WHEN THE PAGE LOADS (CRITICAL FIX HERE)
-document.addEventListener('DOMContentLoaded', () => {
-  const chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
-
-  // Loop through history and use our smart function
-  chatHistory.forEach(message => {
-    // Our addMessageToChat function now handles the parsing!
-    addMessageToChat(message.sender, message.text);
-  });
-});
 
 
 // 4. WHEN FETCHING A NEW RESPONSE & SAVING
