@@ -820,25 +820,62 @@
        * @param {string} rawText The complete response from the model.
        * @returns {{thinking: string|null, solution: string}} An object with the thinking process and the clean solution.
        */
+// 1. YOUR PARSING FUNCTION (keep this as is)
 function parseModelResponse(rawText) {
-  const thinkingRegex = /<thinking>([\s\S]*?)<\/thinking>/g; // Added 'g' for multiple blocks
-  const match = rawText.match(thinkingRegex);
+  // This can be the simpler version if you only need the solution
+  const thinkingRegex = /<thinking>[\s\S]*?<\/thinking>/g;
+  const solutionText = rawText.replace(thinkingRegex, '').trim();
+  return solutionText; // Let's simplify to just return the string
+}
 
-  if (match) {
-    // The solution is the string with the thinking block(s) removed
-    const solutionContent = rawText.replace(thinkingRegex, '').trim();
-    return {
-      // We can still get the thinking content if we want, but we won't show it
-      thinking: match.join('\n'), // Joins if multiple blocks are found
-      solution: solutionContent,
-    };
-  } else {
-    // If no thinking block is found, the whole response is the solution
-    return {
-      thinking: null,
-      solution: rawText.trim(),
-    };
+// 2. YOUR FUNCTION TO ADD MESSAGES TO THE UI
+function addMessageToChat(sender, text) {
+  const chatContainer = document.getElementById('chat-container');
+  const messageElement = document.createElement('div');
+  messageElement.className = `message ${sender}`; // e.g., 'message ai' or 'message user'
+
+  let contentToDisplay = text;
+
+  // IMPORTANT: Parse the text ONLY if it's from the AI
+  if (sender === 'ai') {
+    contentToDisplay = parseModelResponse(text);
   }
+  
+  // Use .innerText to prevent HTML injection issues unless you need to render markdown, etc.
+  messageElement.innerText = contentToDisplay; 
+  chatContainer.appendChild(messageElement);
+}
+
+// 3. WHEN THE PAGE LOADS (CRITICAL FIX HERE)
+document.addEventListener('DOMContentLoaded', () => {
+  const chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
+
+  // Loop through history and use our smart function
+  chatHistory.forEach(message => {
+    // Our addMessageToChat function now handles the parsing!
+    addMessageToChat(message.sender, message.text);
+  });
+});
+
+
+// 4. WHEN FETCHING A NEW RESPONSE & SAVING
+async function handleUserSubmit(userInput) {
+  // ... (add user message to UI and storage) ...
+
+  const rawAiResponse = await fetchFromAI(userInput);
+
+  // Add the CLEANED response to the UI
+  addMessageToChat('ai', rawAiResponse); // The function will parse it for us.
+
+  // Save the RAW response to history
+  // (Or you could save the cleaned one, but saving raw is often better for debugging)
+  saveMessageToHistory('ai', rawAiResponse);
+}
+
+function saveMessageToHistory(sender, text) {
+    const chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
+    chatHistory.push({ sender, text });
+    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
 }
 
       async function handleSendMessage(e, isEdit = false, editIndex = -1) {
