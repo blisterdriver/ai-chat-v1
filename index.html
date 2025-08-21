@@ -811,39 +811,6 @@
         updateTutorButtonState();
       }
 
-      // ===================================================================
-      // === NEW FUNCTION TO HIDE THE <THINKING> BLOCK FROM THE UI ===
-      // ===================================================================
-      /**
-       * Parses the raw text from the model to separate the <thinking> block
-       * from the final solution.
-       * @param {string} rawText The complete response from the model.
-       * @returns {{thinking: string|null, solution: string}} An object with the thinking process and the clean solution.
-       */
-// 1. YOUR PARSING FUNCTION (keep this as is)
-
-
-
-// 4. WHEN FETCHING A NEW RESPONSE & SAVING
-async function handleUserSubmit(userInput) {
-  // ... (add user message to UI and storage) ...
-
-  const rawAiResponse = await fetchFromAI(userInput);
-
-  // Add the CLEANED response to the UI
-  addMessageToChat('ai', rawAiResponse); // The function will parse it for us.
-
-  // Save the RAW response to history
-  // (Or you could save the cleaned one, but saving raw is often better for debugging)
-  saveMessageToHistory('ai', rawAiResponse);
-}
-
-function saveMessageToHistory(sender, text) {
-    const chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
-    chatHistory.push({ sender, text });
-    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-}
-
       async function handleSendMessage(e, isEdit = false, editIndex = -1) {
         e.preventDefault();
         const userText = $("#chat-input").value.trim();
@@ -887,33 +854,26 @@ function saveMessageToHistory(sender, text) {
           const modelResponse = await callBackendAPI();
           loadingMessage.remove();
 
-          // --- MODIFIED LOGIC TO PARSE THE RESPONSE ---
+          // --- Logic to display the full model response ---
           if (modelResponse && modelResponse.text) {
-              const rawModelText = modelResponse.text;
-              
-              // 1. Parse the response to separate thinking from the solution
-              const { thinking, solution } = parseModelResponse(rawModelText);
-              
-              // 2. Log the thinking process for your own debugging (Press F12 to see console)
-              if (thinking) {
-                  console.log("--- Model's Thinking Process (Hidden from UI) ---");
-                  console.log(thinking);
-                  console.log("-------------------------------------------------");
-              }
+            const rawModelText = modelResponse.text;
 
-              // 3. Save the FULL, raw response to history so the model has context for the next turn
-              currentChatHistory.push({
-                  role: "model",
-                  parts: [{ text: rawModelText }], 
-              });
+            // Save the full, raw response to the history
+            currentChatHistory.push({
+              role: "model",
+              parts: [{ text: rawModelText }],
+            });
 
-              // 4. But ONLY display the clean solution to the user in the chat window
-              displayMessage(currentChatHistory.length - 1, "model", solution);
-
+            // Display the full, raw response directly in the chat window
+            displayMessage(
+              currentChatHistory.length - 1,
+              "model",
+              rawModelText
+            );
           } else {
-              throw new Error("Invalid response from server.");
+            throw new Error("Invalid response from server.");
           }
-          // --- END OF MODIFIED LOGIC ---
+          // --- End of response logic ---
 
           saveCurrentChat();
           updateHistorySidebar();
