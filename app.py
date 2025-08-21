@@ -35,6 +35,7 @@ Your response MUST follow this two-part structure:
 - The <thinking> block must come first and is mandatory.
 - The entire output must be in Bengali.
 - The solution should be efficient and well-formatted for an exam context.
+- If its a creative question containing 4 questions and a passage, you must ans all 4 questions unless the user specifically asks for only solving specific ones from that 4 questions that is in that 1 creative questions.
         """
     }]
 }
