@@ -820,27 +820,26 @@
        * @param {string} rawText The complete response from the model.
        * @returns {{thinking: string|null, solution: string}} An object with the thinking process and the clean solution.
        */
-      function parseModelResponse(rawText) {
-        const thinkingRegex = /<thinking>([\s\S]*?)<\/thinking>/;
-        const match = rawText.match(thinkingRegex);
+function parseModelResponse(rawText) {
+  const thinkingRegex = /<thinking>([\s\S]*?)<\/thinking>/g; // Added 'g' for multiple blocks
+  const match = rawText.match(thinkingRegex);
 
-        if (match) {
-          // If we find a thinking block
-          const thinkingContent = match[1].trim();
-          // The solution is the rest of the string with the thinking block removed
-          const solutionContent = rawText.replace(thinkingRegex, '').trim();
-          return {
-            thinking: thinkingContent,
-            solution: solutionContent,
-          };
-        } else {
-          // If no thinking block is found, the whole response is the solution
-          return {
-            thinking: null,
-            solution: rawText.trim(),
-          };
-        }
-      }
+  if (match) {
+    // The solution is the string with the thinking block(s) removed
+    const solutionContent = rawText.replace(thinkingRegex, '').trim();
+    return {
+      // We can still get the thinking content if we want, but we won't show it
+      thinking: match.join('\n'), // Joins if multiple blocks are found
+      solution: solutionContent,
+    };
+  } else {
+    // If no thinking block is found, the whole response is the solution
+    return {
+      thinking: null,
+      solution: rawText.trim(),
+    };
+  }
+}
 
       async function handleSendMessage(e, isEdit = false, editIndex = -1) {
         e.preventDefault();
