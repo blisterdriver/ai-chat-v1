@@ -637,10 +637,13 @@
           <button id="new-chat-btn">＋ New Chat</button>
         </div>
         <div id="history-list"></div>
+        <!-- UPDATED: Sidebar footer with three mode buttons -->
         <div class="sidebar-footer">
-          <!-- NEW BUTTON ADDED HERE -->
           <button id="view-notes-btn" class="sidebar-footer-btn">Concept Notes</button>
-          <button id="tutor-mode-btn" class="sidebar-footer-btn">AI Tutor Mode</button>
+          <hr style="border-color: var(--border-color); width: 100%; border-top-width: 1px; margin: 4px 0;">
+          <button id="assistant-mode-btn" class="sidebar-footer-btn mode-btn">Assistant Mode</button>
+          <button id="tutor-mode-btn" class="sidebar-footer-btn mode-btn">AI Tutor Mode</button>
+          <button id="concept-mode-btn" class="sidebar-footer-btn mode-btn">Concept Mode</button>
         </div>
       </aside>
       <main id="chat-container">
@@ -716,7 +719,6 @@
       const API_URL = "/api/generate";
 
       // --- NEW: CONTENT FOR THE NOTES VIEWER ---
-            // --- NEW: CONTENT FOR THE NOTES VIEWER ---
       const conceptNotesMarkdown = `### **অধ্যায়: চল তড়িৎ (Current Electricity)**
 
 এই অধ্যায়ের কনসেপ্টগুলো এমনভাবে সাজানো হয়েছে যেন একজন শিক্ষার্থী শূন্য থেকে শুরু করেও প্রতিটি বিষয় সহজে বুঝতে পারে এবং গাণিতিক সমস্যা সমাধানে পারদর্শী হতে পারে।
@@ -1253,19 +1255,18 @@
       const modalConfirmBtn = $("#modal-confirm-btn");
       const modalCancelBtn = $("#modal-cancel-btn");
       
-      // --- NEW: Element references for view switching ---
       const markdownViewer = $('#markdown-viewer');
       const chatMessagesContainer = $('#chat-messages');
       const chatFormContainer = $('#chat-form-container');
       const viewNotesBtn = $('#view-notes-btn');
-      const tutorModeBtn = $('#tutor-mode-btn');
-
+      
       let confirmCallback = null;
       let currentChatHistory = [];
       let allChats = {};
       let activeChatId = null;
       let uploadedFiles = [];
-      let isTutorMode = false;
+      // UPDATED: Replaced boolean with string for mode management
+      let currentMode = 'assistant'; 
 
       function showConfirmationModal(message, onConfirm, isDanger = false) {
         modalMessage.textContent = message;
@@ -1295,12 +1296,8 @@
         }, 3000);
       }
       
-      // --- NEW & IMPROVED: Centralized Content Rendering Function ---
       function renderContent(element, markdownText) {
-          // Step 1: Parse Markdown to HTML
           element.innerHTML = marked.parse(markdownText);
-          
-          // Step 2: Render LaTeX within the newly created HTML
           try {
               if (window.renderMathInElement) {
                   renderMathInElement(element, {
@@ -1328,7 +1325,7 @@
             langPrefix: "hljs language-",
             breaks: true,
           });
-          loadTutorModeState();
+          loadModeState(); // UPDATED: Load the correct mode on start
           loadAllChats();
         });
         modalConfirmBtn.addEventListener("click", () => {
@@ -1365,34 +1362,36 @@
         $("#new-chat-btn").addEventListener("click", startNewChat);
         $("#history-list").addEventListener("click", handleHistoryClick);
         $("#chat-messages").addEventListener("click", handleMessageAction);
-        tutorModeBtn.addEventListener("click", toggleTutorMode);
-        // --- NEW: Event listener for the notes button ---
         viewNotesBtn.addEventListener("click", showNotesView);
+        
+        // NEW: Centralized event listener for all mode buttons
+        $('.sidebar-footer').addEventListener('click', (e) => {
+          if (e.target.classList.contains('mode-btn')) {
+            const newMode = e.target.id.replace('-mode-btn', '');
+            if (newMode !== currentMode) {
+              handleModeSwitch(newMode);
+            }
+          }
+        });
       }
       
-      // --- NEW: Functions to switch between Chat and Notes views ---
       function showChatView() {
           markdownViewer.style.display = 'none';
           chatMessagesContainer.style.display = 'flex';
           chatFormContainer.style.display = 'block';
           viewNotesBtn.classList.remove('active');
-          updateHistorySidebar(); // Re-highlight the active chat
+          updateHistorySidebar();
       }
       
       function showNotesView() {
           chatMessagesContainer.style.display = 'none';
           chatFormContainer.style.display = 'none';
           markdownViewer.style.display = 'block';
-
-          // Render the content
           renderContent(markdownViewer, conceptNotesMarkdown);
-
-          // Update sidebar active state
           viewNotesBtn.classList.add('active');
           document.querySelectorAll('.history-item.active').forEach(item => {
               item.classList.remove('active');
           });
-
           if ($("#sidebar").classList.contains("open")) {
               toggleSidebar();
           }
@@ -1409,31 +1408,32 @@
         input.style.height = input.scrollHeight + "px";
       };
 
-      function toggleTutorMode() {
+      // NEW: Function to handle switching between any mode
+      function handleModeSwitch(newMode) {
         showConfirmationModal(
           "Switching modes will start a new chat. Do you want to continue?",
           () => {
-            isTutorMode = !isTutorMode;
-            localStorage.setItem("ai-tutor-mode", isTutorMode);
-            updateTutorButtonState();
+            currentMode = newMode;
+            localStorage.setItem("ai-current-mode", currentMode);
+            updateModeButtonsUI();
             startNewChat();
           }
         );
       }
-
-      function updateTutorButtonState() {
-        if (isTutorMode) {
-          tutorModeBtn.classList.add("active");
-          tutorModeBtn.textContent = "Tutor Mode: ON";
-        } else {
-          tutorModeBtn.classList.remove("active");
-          tutorModeBtn.textContent = "AI Tutor Mode";
+      
+      // NEW: Function to visually update which mode button is active
+      function updateModeButtonsUI() {
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+        const activeBtn = $(`#${currentMode}-mode-btn`);
+        if (activeBtn) {
+          activeBtn.classList.add('active');
         }
       }
 
-      function loadTutorModeState() {
-        isTutorMode = localStorage.getItem("ai-tutor-mode") === "true";
-        updateTutorButtonState();
+      // NEW: Function to load the last used mode from storage
+      function loadModeState() {
+        currentMode = localStorage.getItem("ai-current-mode") || 'assistant';
+        updateModeButtonsUI();
       }
 
       async function handleSendMessage(e, isEdit = false, editIndex = -1) {
@@ -1442,7 +1442,6 @@
         if (userText === "" && uploadedFiles.length === 0 && !isEdit) return;
         if (!activeChatId) startNewChat(false);
         
-        // --- MODIFIED: Ensure we are in chat view before sending ---
         showChatView();
 
         if (isEdit) {
@@ -1511,9 +1510,10 @@
       }
 
       async function callBackendAPI() {
+        // UPDATED: Send the current mode string to the backend
         const requestBody = {
           history: currentChatHistory,
-          is_tutor_mode: isTutorMode,
+          mode: currentMode,
         };
         const response = await fetch(API_URL, {
           method: "POST",
@@ -1549,9 +1549,7 @@
 
         if (text) {
           const contentDiv = document.createElement("div");
-          // --- IMPROVED: Use a shared class for consistent styling ---
           contentDiv.className = "message-content rendered-content-area";
-          // --- IMPROVED: Use the centralized render function ---
           renderContent(contentDiv, text);
           messageEl.appendChild(contentDiv);
         }
@@ -1659,7 +1657,6 @@
       }
 
       const startNewChat = (render = true) => {
-        // --- MODIFIED: Switch to chat view when starting a new chat ---
         showChatView();
         activeChatId = `chat_${Date.now()}`;
         currentChatHistory = [];
@@ -1668,12 +1665,16 @@
           history: [],
           timestamp: Date.now(),
         };
-        const welcomeMessage = isTutorMode
-          ? "AI Tutor Mode"
-          : "Started a new chat. How can I assist you?";
-        $(
-          "#chat-messages"
-        ).innerHTML = `<div class="message model rendered-content-area">${welcomeMessage}</div>`;
+        
+        // UPDATED: Welcome message changes based on the active mode
+        let welcomeMessage = "Started a new chat. How can I assist you?";
+        if (currentMode === 'tutor') {
+            welcomeMessage = "AI Tutor Mode";
+        } else if (currentMode === 'concept') {
+            welcomeMessage = "Concept Mode";
+        }
+
+        $("#chat-messages").innerHTML = `<div class="message model rendered-content-area">${welcomeMessage}</div>`;
         saveAllChats();
         if (render) updateHistorySidebar();
         if ($("#sidebar").classList.contains("open")) toggleSidebar();
@@ -1705,7 +1706,6 @@
 
       function updateHistorySidebar() {
         $("#history-list").innerHTML = "";
-        // Don't highlight any chat if notes view is active
         const isNotesViewActive = viewNotesBtn.classList.contains('active');
 
         const sortedChats = Object.values(allChats).sort(
@@ -1754,15 +1754,17 @@
 
       function loadChat(chatId) {
         if (!allChats[chatId]) return;
-        // --- MODIFIED: Switch to chat view when loading a chat ---
         showChatView();
         activeChatId = chatId;
         currentChatHistory = allChats[chatId].history;
         $("#chat-messages").innerHTML = "";
         if (currentChatHistory.length === 0) {
-          const welcomeMessage = isTutorMode
-            ? "AI Tutor Mode"
-            : "This is an empty chat. Start the conversation!";
+            let welcomeMessage = "This is an empty chat. Start the conversation!";
+            if (currentMode === 'tutor') {
+                welcomeMessage = "AI Tutor Mode. Ask me any STEM problem.";
+            } else if (currentMode === 'concept') {
+                welcomeMessage = "Concept Mode";
+            }
           $(
             "#chat-messages"
           ).innerHTML = `<div class="message model rendered-content-area">${welcomeMessage}</div>`;
@@ -1781,9 +1783,7 @@
         updateHistorySidebar();
       }
 
-      // Initialize the application
       setupEventListeners();
-      // --- END OF JAVASCRIPT ---
     </script>
   </body>
 </html>
