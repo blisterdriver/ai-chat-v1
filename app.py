@@ -135,7 +135,7 @@ async def generate_content(request: ChatRequest):
         # --- OVERHAULED: Logic to select model and config based on mode ---
         if request.mode == 'assistant':
             print("Using Assistant Mode configuration...")
-            model_name = "gemini-1.5-flash-latest" 
+            model_name = "gemini-2.5-flash" 
             system_instruction = ASSISTANT_MODE_PROMPT['parts'][0]['text']
             generation_config = {
                 "temperature": 0.7, # Slightly more creative for general chat
